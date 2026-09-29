@@ -1,0 +1,13 @@
+{
+ "name": "axe-core",
+ "ecosystem": "npm",
+ "version": "4.13.0",
+ "license": "MPL-2.0",
+ "source": "https://registry.npmjs.org/axe-core/-/axe-core-4.13.0.tgz",
+ "source_integrity": "sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A==",
+ "files": {
+  "LICENSE": "af175b9d96ee93c21a036152e1b905b0b95304d4ae8c2c921c7609100ba8df7e",
+  "LICENSE-3RD-PARTY.txt": "4f8563870d0fca38bbc3e00b6f670cb7fa9f380ba9f26a7f7d1184a6b18b1653",
+  "axe.min.js": "c24f097bd2f451d4f933e8bc7d8d539f8672a2ebcb5cc9f9f3eec8ca9470a0c1"
+ }
+}

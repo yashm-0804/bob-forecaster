@@ -1,0 +1,28 @@
+# The modelling pipeline and the local console. Exact versions are the ones
+# the test suite last passed on; CI installs these, so a fresh clone gets the
+# same stack. Upgrade deliberately, then run ./check.sh.
+
+# Numerics
+numpy==2.5.3
+pandas==3.0.6
+scipy==1.18.1
+
+# Data sources
+earthengine-api==1.7.43   # elevation and satellite checks (optional at run time)
+rasterio==1.5.1           # Copernicus DEM tiles from AWS
+eccodes==2.48.0           # GFS GRIB2 decoding
+eccodeslib==2.49.0.30 ; platform_system != "Windows"   # its binary library; named so
+                          # lock files keep it (the sdist's metadata omits it)
+imdtrack==0.3.0           # IMD RSMC best track (BSD-3)
+certifi==2026.7.22        # CA roots for python.org builds on macOS
+
+# Drafting
+google-genai==2.25.0
+
+# Serving
+fastapi==0.141.1
+starlette==1.7.0          # fastapi's; pinned so its test client uses httpx2
+uvicorn==0.53.0
+pydantic==2.13.5
+google-auth==2.58.1       # the BigQuery audit trail's credentials (api/bigquery_audit.py)
+requests==2.34.2          # its HTTP client, through google-auth

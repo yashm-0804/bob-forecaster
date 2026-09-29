@@ -1,0 +1,6 @@
+import pandas as pd
+
+class Dataset:
+    def to_dataframe(self) -> pd.DataFrame: ...
+
+def load() -> Dataset: ...

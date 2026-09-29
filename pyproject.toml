@@ -1,0 +1,53 @@
+[project]
+name = "bob-forecaster"
+version = "0.1.0"
+description = "Bay of Bengal cyclone impact and infrastructure vulnerability forecaster"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "network: talks to a live external service; runs only with BOB_NETWORK_TESTS=1",
+]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = [".venv", "data"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, bugbear, pyupgrade, simplify, import order, and S:
+# Bandit's security checks (injection, unsafe deserialisation, weak crypto,
+# hard-coded secrets, shell use, unverified TLS). Each suppression in
+# application code carries its reason on the same line.
+select = ["E", "F", "W", "B", "UP", "SIM", "I", "ANN", "C90", "BLE", "S"]
+ignore = [
+    "E702",  # "a; b" is used deliberately for short grouped assignments in tests
+    "E731",  # small named lambdas read better than defs in a few numeric helpers
+    "SIM108", # a three-way if/elif reads more clearly than a nested ternary
+    "ANN401", # Earth Engine objects are untyped (no stubs); Any says so honestly
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are exempt from annotation rules; application code is not.
+# Tests assert (S101), start local processes and write fake credentials on purpose.
+"tests/*" = ["E501", "ANN", "C90", "BLE", "S"]
+"notebooks/*" = ["ANN"]
+
+[tool.pyright]
+include = ["advisory", "agent", "api", "common", "exposure", "hazard", "impact", "ingest", "telemetry", "verify", "pipeline.py", "envfile.py", "scripts", "tests"]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+stubPath = "typings"
+strict = ["api", "telemetry", "advisory", "common", "pipeline.py", "agent", "verify", "impact", "ingest", "hazard", "exposure", "envfile.py", "scripts"]
+# No venv setting: check.sh and CI pass --pythonpath, so the checker sees the
+# same installed packages as the tests, wherever they are.
+
+[tool.coverage.run]
+# Application code only: counting the tests themselves would inflate the total.
+# Branches count too: a line reached is not an if tested both ways.
+source = ["."]
+branch = true
+omit = ["tests/*", ".venv/*", "notebooks/*"]

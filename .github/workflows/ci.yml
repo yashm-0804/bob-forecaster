@@ -1,0 +1,54 @@
+name: checks
+
+on:
+  push:
+  pull_request:
+
+# Actions are pinned by commit, with the tag in a comment, so a moved tag
+# cannot change what runs.
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+        with:
+          fetch-depth: 0              # the whole history, for the secret scan
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: "3.12"      # the Docker image's version
+          cache: pip
+          cache-dependency-path: requirements-dev.lock
+      # Node: console JS tests, ESLint and the browser test.
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: "22"            # built-in WebSocket, used to drive Chrome
+      - run: pip install --require-hashes -r requirements-dev.lock
+      # The same script as on a laptop, so the two cannot drift: lint, types
+      # (Python and the console's JS, strict), JS tests with coverage, the
+      # Python tests with coverage (hermetic: Earth Engine off, no Gemini
+      # key, live-service tests skipped; the browser test required), and the
+      # dependency audit.
+      - name: checks
+        run: BOB_PYTHON_BIN="$(dirname "$(command -v python)")" ./check.sh
+
+  image:
+    needs: check                      # never build an image from code that failed its checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - name: build the serving image
+        run: docker build -t bob-forecaster .
+      # The checks are scripts/smoke_test.sh, which tests/test_ci_smoke.py also
+      # runs against a server started with these settings. The codes are
+      # throwaway values for this job, not credentials.
+      - name: smoke test
+        run: |
+          docker run -d -p 8080:8080 --name bob -e BOB_OPERATOR_TOKEN=ci-smoke-operator-code-0123 -e BOB_INGEST_TOKEN=ci-smoke-ingest-code-01234567 bob-forecaster
+          docker run -d -p 8081:8080 --name bob-no-codes bob-forecaster
+          scripts/smoke_test.sh http://localhost:8080 configured
+          scripts/smoke_test.sh http://localhost:8081 no-codes
+      - name: the image runs as a non-root user
+        run: test "$(docker run --rm --entrypoint id bob-forecaster -u)" != "0"

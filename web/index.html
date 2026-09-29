@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cyclone Impact Console</title>
+<link rel="icon" href="data:,">
+<!-- MapLibre is served from here, not a CDN (web/vendor/maplibre-gl/VENDOR.json). -->
+<link rel="stylesheet" href="/static/vendor/maplibre-gl/maplibre-gl.css">
+<script type="module" src="/static/map-loader.mjs"></script>
+<script type="module" src="/static/auth-loader.mjs"></script>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel-2:#1c2128; --line:#30363d;
+    /* Contrast against the panels (#161b22, #1c2128, #21262d): faint text
+       is at least 4.9:1 and dim text 7:1, above WCAG AA's 4.5:1 for small
+       text. Faint used to be #6e7681, which fell to 3.3:1. */
+    --ink:#e6edf3; --ink-dim:#a8b1bb; --ink-faint:#8b949e;
+    --red:#f85149; --orange:#e3a008; --yellow:#d4a72c; --green:#3fb950;
+    --accent:#58a6ff; --exercise:#bc8cff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  /* overflow-x hidden everywhere: nothing should ever scroll sideways.
+     Vertical is hidden only on desktop, where the three panes scroll
+     internally. On a narrow screen the panes stack and the page itself has to
+     scroll -- with overflow:hidden the asset table and advisory queue sat
+     below the fold and could not be reached at all. */
+  body{margin:0;background:var(--bg);color:var(--ink);font-size:13px;
+    overflow-x:hidden;overflow-y:hidden}
+  @media(max-width:1100px){ body{overflow-y:auto} }
+
+  /* Exercise banner is not dismissible. This tool is decision support; IMD is
+     the statutory warning authority and nothing here may read as official. */
+  #exercise{background:linear-gradient(90deg,#3d2a5c,#2d1f42);border-bottom:1px solid var(--exercise);
+    color:#d2b7ff;padding:6px 16px;font-size:11px;font-weight:600;letter-spacing:.06em;
+    text-transform:uppercase;display:flex;gap:6px 12px;align-items:center;flex-wrap:wrap}
+  #exercise b{color:#fff}
+  #auth-state{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:500}
+  #auth-state button{margin-left:6px;padding:2px 8px;font-size:11px}
+
+  #shell{display:grid;grid-template-columns:260px 1fr 400px;
+    height:calc(100vh - 31px)}
+  @media(max-width:1100px){#shell{grid-template-columns:1fr;grid-template-rows:auto 45vh 1fr;overflow:auto;height:auto}}
+
+  /* Narrow screens. Long stat labels were forcing the panel wider than the
+     viewport, pushing every value off the right edge and clipping the banner
+     and caveat text. Let labels wrap and keep everything inside the screen. */
+  @media(max-width:560px){
+    #exercise{white-space:normal; line-height:1.45; padding:8px 14px}
+    .stat{gap:10px}
+    .stat span{font-size:12px; line-height:1.35}
+    .stat b{white-space:nowrap; flex:none}
+    .row-meta{flex-wrap:wrap; row-gap:3px}
+    .adv-foot{gap:6px}
+    .langs{margin-left:0; width:100%}
+    #map{min-height:320px}
+  }
+  /* Nothing may exceed the viewport width at any size. */
+  /* Grid and flex items default to min-height/min-width:auto, so they refuse
+     to shrink below their content. Without min-height:0 the asset list sets
+     the row height for all three panes -- the middle column measured 10,306 px
+     tall -- and .view's internal scrolling never engages. */
+  #shell > *{min-width:0; min-height:0}
+  #right, .view{min-height:0}
+  aside,#right,.block,.row,.adv,.tabs,.view{max-width:100%; min-width:0}
+  .stat{min-width:0}
+  .row-name,.adv-headline,.adv-to{overflow-wrap:anywhere}
+
+  .panel{background:var(--panel);overflow-y:auto}
+  aside{border-right:1px solid var(--line)}
+  #right{border-left:1px solid var(--line);display:flex;flex-direction:column}
+
+  h2{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-faint);
+    margin:0;padding:14px 14px 8px}
+  .block{padding:0 14px 14px;border-bottom:1px solid var(--line)}
+
+  .switcher{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
+  .swbtn{background:var(--panel-2);color:var(--ink-dim);border:1px solid var(--line);
+    border-radius:4px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;
+    font-family:inherit;letter-spacing:.02em}
+  .swbtn:hover{color:var(--ink);border-color:var(--accent)}
+  .swbtn.on{background:var(--accent);color:#04121f;border-color:var(--accent)}
+  .cycles{display:flex;gap:3px;margin:-4px 0 12px}
+  .cyc{flex:1;background:transparent;color:var(--ink-faint);border:1px solid var(--line);
+    border-radius:3px;padding:4px 0;font-size:10.5px;font-weight:600;cursor:pointer;
+    font-family:inherit;font-variant-numeric:tabular-nums}
+  .cyc:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .cyc.on{background:var(--panel-2);color:var(--ink);border-color:var(--accent)}
+  .changes{margin-top:12px;padding:9px 11px;border-left:3px solid var(--orange);
+    background:rgba(227,160,8,.08);font-size:11.5px;line-height:1.5;color:var(--ink-dim)}
+  .changes.first{border-left-color:var(--line);background:transparent}
+  .changes-h{font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-faint);font-weight:600;margin-bottom:2px}
+  .changes-list{margin-top:4px;font-size:10.5px;color:var(--ink-faint)}
+  .storm-name{font-size:22px;font-weight:700;letter-spacing:-.02em;margin:0 0 2px}
+  .storm-sub{color:var(--ink-dim);font-size:12px}
+  .countdown{font-size:30px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;
+    margin-top:10px;line-height:1}
+  .countdown small{font-size:12px;color:var(--ink-dim);font-weight:500;display:block;margin-top:3px}
+
+  .stat{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;
+    border-bottom:1px solid #21262d}
+  .stat:last-child{border:0}
+  .stat span{color:var(--ink-dim);font-size:11px}
+  .stat b{font-variant-numeric:tabular-nums;font-size:14px}
+
+  .layer{display:flex;align-items:center;gap:9px;padding:7px 0;cursor:pointer;user-select:none}
+  .layer input{accent-color:var(--accent);cursor:pointer;margin:0}
+  .layer .swatch{width:26px;height:9px;border-radius:2px}
+  .layer label{cursor:pointer;flex:1}
+
+  #map{position:relative;overflow:hidden;min-height:0}
+  /* The CSS size is the box; the backing store is scaled for the screen's
+     pixel ratio in app.js. Without an explicit size the canvas took its
+     backing-store size and drew at twice its box on a high-DPI screen. */
+  #offline-map{position:absolute;inset:0;display:block;width:100%;height:100%}
+  #map-detail{position:absolute;top:10px;left:10px;z-index:5;max-width:min(280px,calc(100% - 20px));
+    background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:6px;
+    padding:10px 12px;font-size:12px;line-height:1.5}
+  #map-detail button{display:block;margin-top:8px}
+  #offline-note{position:absolute;left:12px;bottom:10px;font-size:10px;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);
+    background:rgba(13,17,23,.78);padding:4px 8px;border-radius:3px}
+  .maplibregl-popup-content{background:var(--panel-2);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:11px 13px;font-size:12px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+  .maplibregl-popup-tip{border-top-color:var(--panel-2)!important;border-bottom-color:var(--panel-2)!important}
+
+  .tabs{display:flex;border-bottom:1px solid var(--line);background:var(--panel-2);flex:none}
+  .tab{flex:1;padding:11px 8px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;
+    text-transform:uppercase;letter-spacing:.07em;color:var(--ink-faint);border-bottom:2px solid transparent}
+  .tab.on{color:var(--ink);border-bottom-color:var(--accent);background:var(--panel)}
+  .tab .n{display:inline-block;background:#30363d;border-radius:9px;padding:1px 6px;margin-left:5px;
+    font-size:10px;color:var(--ink-dim)}
+  #rank-note{padding:9px 13px;background:var(--panel-2);border-bottom:1px solid var(--line);
+    font-size:11px;color:var(--ink-faint);line-height:1.45;flex:none}
+  #rank-note b{color:var(--ink-dim)}
+  .view{flex:1;overflow-y:auto;display:none}
+  .view.on{display:block}
+
+  .row{padding:10px 13px;border-bottom:1px solid #21262d;cursor:pointer}
+  .row:hover{background:var(--panel-2)}
+  .row-top{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+  .dot{width:8px;height:8px;border-radius:50%;flex:none}
+  .row-name{font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .row-p{font-variant-numeric:tabular-nums;font-weight:700;font-size:13px}
+  .row-meta{color:var(--ink-faint);font-size:11px;display:flex;gap:9px;padding-left:16px}
+  .row-basis{font-size:10.5px;padding-left:16px;margin-top:3px;color:var(--ink-faint);font-style:italic}
+  .row-basis.conf-measured{color:#7ee787;font-style:normal}
+  .row-basis.conf-inferred{color:#d4a72c}
+  .row-basis.conf-assumed,.row-basis.conf-class-default{color:var(--ink-faint)}
+  .pill{background:#21262d;border-radius:3px;padding:0 5px;font-size:10px}
+
+  .adv{margin:11px 13px;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--panel-2)}
+  .adv-head{padding:11px 13px;border-bottom:1px solid var(--line)}
+  .adv-to{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:4px}
+  .adv-headline{font-weight:600;line-height:1.4}
+  .adv-body{padding:11px 13px;font-size:12px;line-height:1.55;color:var(--ink-dim)}
+  .adv-note{padding:9px 13px;background:#1a1f26;border-top:1px solid var(--line);
+    font-size:11px;color:var(--ink-faint);line-height:1.5;font-style:italic}
+  .adv-foot{padding:10px 13px;display:flex;gap:7px;align-items:center;border-top:1px solid var(--line);flex-wrap:wrap}
+  button{background:var(--accent);color:#04121f;border:0;border-radius:5px;padding:7px 13px;
+    font-weight:600;font-size:11px;cursor:pointer;font-family:inherit}
+  button:hover{filter:brightness(1.12)}
+  button.ghost{background:transparent;color:var(--ink-dim);border:1px solid var(--line)}
+  button.ok{background:var(--green);color:#03210f}
+  .approved{color:var(--green);font-size:12px;font-weight:600}
+  .adv-result{padding:8px 13px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.5;color:var(--ink)}
+  dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:18px 20px;width:min(440px,calc(100vw - 32px))}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog h3{font-size:15px;margin:0 0 6px}
+  dialog label{display:block;font-size:11.5px;color:var(--ink-dim);margin:10px 0 4px}
+  dialog input{width:100%;box-sizing:border-box;background:var(--bg);color:var(--ink);
+    border:1px solid var(--line);border-radius:5px;padding:7px 9px;font:inherit}
+  .dlg-what{font-size:12px;color:var(--ink-dim);margin:0 0 4px;line-height:1.4}
+  .dlg-error{color:#f85149;font-size:12px;min-height:1em;margin:10px 0 0}
+  .dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+  .opt{color:var(--ink-faint)}
+  #toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel-2);
+    color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:9px 14px;font-size:12px;
+    max-width:min(560px,calc(100vw - 32px));z-index:10}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+  .langs{margin-left:auto;display:flex;gap:4px}
+  .lang{background:#21262d;border-radius:3px;padding:2px 6px;font-size:10px;color:var(--ink-dim)}
+  .lang.pending{background:transparent;border:1px dashed #6e7681;color:var(--ink-faint)}
+  .adv-tr{padding:9px 13px;border-top:1px solid var(--line)}
+  .adv-tr-lang{font-size:10px;letter-spacing:.08em;color:var(--ink-faint);margin-bottom:4px}
+  .adv-tr-headline{font-weight:600;line-height:1.5;overflow-wrap:anywhere}
+  .adv-tr-body{margin-top:4px;font-size:12px;line-height:1.6;color:var(--ink-dim)}
+  .adv-tr-note{margin-top:4px;font-size:11px;line-height:1.5;color:var(--ink-faint)}
+  .adv-prov{padding:8px 13px;border-top:1px solid var(--line);font-size:10.5px;
+    color:var(--ink-faint);line-height:1.5}
+  .adv-prov b{color:var(--ink-dim);font-weight:600}
+
+  pre{background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:10px;
+    overflow-x:auto;font-size:10.5px;line-height:1.45;margin:0 13px 13px;color:#a5d6ff}
+  .empty{padding:40px 20px;text-align:center;color:var(--ink-faint);font-size:12px;line-height:1.6}
+  .vsec{padding:14px 13px;border-bottom:1px solid var(--line)}
+  .vsec h4{margin:0 0 10px;font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-faint);font-weight:600}
+  .vstat{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+    padding:4px 0;border-bottom:1px solid #21262d}
+  .vstat:last-of-type{border-bottom:0}
+  .vstat span{color:var(--ink-dim);font-size:11.5px}
+  .vstat b{font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+  .vwhy{margin-top:9px;font-size:11px;line-height:1.5;color:var(--ink-faint);font-style:italic}
+  .trg{padding:12px 13px;border-bottom:1px solid var(--line)}
+  .trg-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+  .basis{font-size:9.5px;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap}
+  .basis.ok{background:#12351f;color:#3fb950}
+  .basis.bad{background:#3d1717;color:#f85149}
+  .basis.warn{background:#3a2a10;color:#d29922}
+  .trg-row{display:grid;grid-template-columns:36px 1fr 34px;gap:8px;align-items:center;
+    font-size:11px;margin:4px 0}
+  .trg-peril{color:var(--ink-faint);text-transform:uppercase;font-size:9.5px;letter-spacing:.07em}
+  .trg-p{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+  .trg-obs{grid-column:2 / 4;font-size:10.5px;color:var(--ink-faint);margin-top:-2px}
+  .trg-obs b{color:var(--ink)}
+  .pbar{height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+  .pbar span{display:block;height:100%;background:var(--accent)}
+  .trg-meta{font-size:10px;color:var(--ink-faint);margin-top:6px}
+  .trg-note{padding:10px 13px;font-size:10.5px;line-height:1.5;color:var(--ink-faint);font-style:italic}
+  .vsource{display:inline-block;font-size:10px;font-weight:600;padding:3px 7px;
+    border-radius:3px;margin-bottom:8px;letter-spacing:.02em}
+  .vsource.real{background:#12351f;color:#3fb950}
+  .vsource.self{background:#2d2a1a;color:#d29922}
+  .vrow{padding:9px 0;border-bottom:1px solid #21262d}
+  .vrow:last-of-type{border-bottom:0}
+  .vrow-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .vmeta{font-size:11px;color:var(--ink-faint);padding-left:2px;margin-top:2px}
+  .vmeta code{background:#21262d;padding:1px 4px;border-radius:2px;font-size:10px}
+  .vstate{font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;padding:2px 6px;
+    border-radius:2px;font-weight:600;white-space:nowrap}
+  .vstate.ok{background:#12351f;color:#3fb950}
+  .vstate.pending{background:#3a2a10;color:#d29922}
+  .vtab{width:100%;border-collapse:collapse;font-size:11px;margin:6px 0 4px;
+    font-variant-numeric:tabular-nums}
+  .vtab th{font-weight:600;color:var(--ink-faint);text-align:right;padding:3px 4px;
+    font-size:9.5px;text-transform:uppercase;letter-spacing:.05em}
+  .vtab th:first-child,.vtab td:first-child{text-align:left}
+  .vtab td{text-align:right;padding:3px 4px;border-top:1px solid #21262d}
+  .vverdict{font-size:11.5px;margin:4px 0 2px;line-height:1.45}
+  .vverdict.bad{color:#f0883e}
+  .vverdict.ok{color:#3fb950}
+  .vverdict.mixed{color:#d29922}
+  .caveat{font-size:10.5px;color:var(--ink-faint);line-height:1.5;padding:10px 14px;font-style:italic}
+</style>
+</head>
+<body>
+
+<div id="exercise">
+  <b>⚠ Exercise</b>
+  <span>Decision support only — IMD is the statutory cyclone warning authority for India. No alert is dispatched.</span>
+  <span id="auth-state" hidden></span>
+</div>
+
+<div id="shell">
+  <aside class="panel">
+    <div class="block" id="storm-block"></div>
+    <h2>Hazard — ensemble</h2>
+    <div class="block" id="hazard-stats"></div>
+    <h2>Map layers</h2>
+    <div class="block" id="layers"></div>
+    <h2>Exposure</h2>
+    <div class="block" id="exposure-stats"></div>
+    <div class="caveat" id="caveats"></div>
+  </aside>
+
+  <div id="map" role="region" aria-label="Hazard map. The same assets are listed, ranked, in the Assets panel."></div>
+
+  <main id="right">
+    <div class="tabs" role="tablist" aria-label="Panels">
+      <div class="tab on" id="tab-assets" data-view="assets" role="tab" tabindex="0" aria-selected="true" aria-controls="view-assets">Assets<span class="n" id="n-assets">0</span></div>
+      <div class="tab" id="tab-advisories" data-view="advisories" role="tab" tabindex="-1" aria-selected="false" aria-controls="view-advisories">Advisories<span class="n" id="n-adv">0</span></div>
+      <div class="tab" id="tab-triggers" data-view="triggers" role="tab" tabindex="-1" aria-selected="false" aria-controls="view-triggers">Triggers</div>
+      <div class="tab" id="tab-verify" data-view="verify" role="tab" tabindex="-1" aria-selected="false" aria-controls="view-verify">Checks</div>
+    </div>
+    <div id="rank-note"></div>
+    <div class="view on" id="view-assets" role="tabpanel" aria-labelledby="tab-assets" tabindex="0"><div class="empty" role="status">Loading the forecast…</div></div>
+    <div class="view" id="view-advisories" role="tabpanel" aria-labelledby="tab-advisories" tabindex="0"></div>
+    <div class="view" id="view-triggers" role="tabpanel" aria-labelledby="tab-triggers" tabindex="0"></div>
+    <div class="view" id="view-verify" role="tabpanel" aria-labelledby="tab-verify" tabindex="0"></div>
+  </main>
+</div>
+
+<dialog id="act-dialog" aria-labelledby="act-title">
+  <form id="act-form" method="dialog">
+    <h3 id="act-title">Approve advisory</h3>
+    <p id="act-what" class="dlg-what"></p>
+    <div id="act-names">
+      <div id="act-who">
+        <label for="act-operator">Your full name — recorded against this advisory</label>
+        <input id="act-operator" name="operator" minlength="3" maxlength="120" autocomplete="name" required>
+      </div>
+      <label for="act-note">Note <span class="opt">(optional)</span></label>
+      <input id="act-note" name="note" maxlength="500">
+    </div>
+    <div id="act-code-row" hidden>
+      <label for="act-code">Operator access code</label>
+      <input id="act-code" name="code" type="password" autocomplete="off">
+    </div>
+    <p id="act-error" class="dlg-error" role="alert"></p>
+    <div class="dlg-foot">
+      <button type="button" class="ghost" data-action="dialog-cancel">Cancel</button>
+      <button type="submit" class="ok" id="act-submit">Approve</button>
+    </div>
+  </form>
+</dialog>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

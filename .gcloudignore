@@ -1,0 +1,21 @@
+# What `gcloud run deploy --source .` must not upload to Cloud Build.
+# Without this file gcloud decides for itself; the secrets rule must not
+# depend on that.
+.gcloudignore
+.git
+.gitignore
+.venv
+.pytest_cache
+.ruff_cache
+__pycache__
+.coverage*
+htmlcov
+data/cache
+**/*.sqlite3
+tests
+notebooks
+.env
+.env.*
+service-account*.json
+.cache/
+coverage/

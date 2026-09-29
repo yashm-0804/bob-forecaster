@@ -1,0 +1,15 @@
+{
+ "name": "firebase",
+ "ecosystem": "npm",
+ "version": "12.19.0",
+ "license": "Apache-2.0",
+ "source": "https://registry.npmjs.org/firebase/-/firebase-12.19.0.tgz",
+ "source_integrity": "sha512-kwXCLcI0ly2lkwygkbuRx6SsX3DSO96355YrWh9SWZ5ncsxK/y5cirn3sY6nZVSiBVE++2nL6Hchzu1EB8uohQ==",
+ "modified": {
+  "firebase-auth.js": "its one import of firebase-app.js points at ./firebase-app.js instead of https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js, so nothing loads from a CDN; no other change"
+ },
+ "files": {
+  "firebase-app.js": "39a50952b5def557337b2290069c7d7371f3515ad46c44a43b9c520f734d8d14",
+  "firebase-auth.js": "0f99fc82c189cc62a37ef58558bbe91a54b83d47a8592b03144e3dc15c678b5c"
+ }
+}

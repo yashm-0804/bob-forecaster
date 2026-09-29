@@ -1,0 +1,10 @@
+# What the deployed console needs at request time. Runs are precomputed, so
+# none of the modelling stack -- Earth Engine, rasterio, pandas, imdtrack --
+# ships in the image. Versions match requirements.txt.
+fastapi==0.141.1
+starlette==1.7.0
+uvicorn==0.53.0
+numpy==2.5.3
+pydantic==2.13.5
+google-auth==2.58.1       # the BigQuery audit trail's credentials (api/bigquery_audit.py)
+requests==2.34.2          # its HTTP client, through google-auth

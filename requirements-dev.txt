@@ -1,0 +1,10 @@
+# Checks run by ./check.sh and CI, on top of requirements.txt.
+-r requirements.txt
+pytest==9.1.1
+pytest-cov==7.1.0
+httpx2==2.13.1            # Starlette's TestClient (httpx through it is deprecated)
+ruff==0.16.9
+pyright==1.1.414
+pandas-stubs==3.0.5.260914   # types for pyright's strict mode
+scipy-stubs==1.18.1.1
+pip-audit==2.10.1

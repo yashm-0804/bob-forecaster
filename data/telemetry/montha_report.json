@@ -1,0 +1,34 @@
+{
+ "nodes": {
+  "A": 39,
+  "B": 36,
+  "D": 4,
+  "E": 4
+ },
+ "window": [
+  "2025-10-26T21:00:00",
+  "2025-10-29T03:00:00"
+ ],
+ "faults_injected": {
+  "drift": 161,
+  "seized": 189,
+  "misconfig": 7,
+  "spike": 1
+ },
+ "faults_caught": {
+  "drift": 74,
+  "seized": 181,
+  "misconfig": 7,
+  "spike": 1
+ },
+ "clean_readings": 17118,
+ "clean_flagged": 0,
+ "false_flag_rate": 0.0,
+ "false_flags_by_check": {},
+ "storm": "Montha",
+ "strongest_3h_fall_at_landfall": {
+  "node_id": "A013",
+  "hpa": -4.17
+ },
+ "note": "Simulated network observing the best track. Tests the ingest path and QC, not the model. Faults injected deliberately."
+}

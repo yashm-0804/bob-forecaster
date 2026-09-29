@@ -1,0 +1,16 @@
+.venv
+.git
+.pytest_cache
+.ruff_cache
+__pycache__
+.coverage*
+htmlcov
+data/cache
+**/*.sqlite3
+tests
+# Secrets never enter a build context.
+.env
+.env.*
+service-account*.json
+.cache/
+coverage/
