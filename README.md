@@ -1,4 +1,6 @@
-# Bay of Bengal Cyclone Impact & Infrastructure Vulnerability Forecaster
+# Project CYCLOPS
+
+**Bay of Bengal Cyclone Impact & Infrastructure Vulnerability Forecaster**
 
 **Build with AI: Code for Communities (2nd edition) · Track 5 · Team SPECODERS**
 
@@ -121,8 +123,8 @@ are committed in `data/runs`.
 
 ```bash
 # 1. Get the code
-git clone https://github.com/yashm-0804/bob-forecaster.git
-cd bob-forecaster
+git clone https://github.com/yashm-0804/project-cyclops.git
+cd project-cyclops
 
 # 2. Make a virtual environment and install the exact, hash-locked dependencies
 python3 -m venv .venv
@@ -812,7 +814,7 @@ them in the shell, which wins over the file.
   depth.
 
 To report a security problem, open a private
-[security advisory](https://github.com/yashm-0804/bob-forecaster/security/advisories/new)
+[security advisory](https://github.com/yashm-0804/project-cyclops/security/advisories/new)
 rather than a public issue.
 
 ---
@@ -864,7 +866,7 @@ district with its power utility to pilot with.
 ## 18. Repository layout
 
 ```
-bob-forecaster/
+project-cyclops/
 ├── ingest/        storm tracks, WeatherNext ensembles, GFS rain, Earth Engine sign-in
 ├── hazard/        wind (Holland), surge screen, rainfall, terrain
 ├── exposure/      OpenStreetMap assets

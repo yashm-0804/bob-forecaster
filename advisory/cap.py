@@ -25,7 +25,8 @@ if TYPE_CHECKING:
 CAP_NS = "urn:oasis:names:tc:emergency:cap:1.2"
 #: Who issues these advisories, for CAP <senderName> ("the originator").
 #: The department an advisory is for is its <audience>.
-SENDER_NAME = "Bay of Bengal Cyclone Impact Forecaster (exercise; not an IMD warning)"
+SENDER_NAME = ("Project CYCLOPS, Bay of Bengal cyclone impact forecaster "
+               "(exercise; not an IMD warning)")
 
 
 @dataclass(frozen=True)
@@ -244,7 +245,7 @@ class Advisory:
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <alert xmlns="{CAP_NS}">
   <identifier>{self.identifier}</identifier>
-  <sender>advisories@bob-forecaster.example</sender>
+  <sender>advisories@project-cyclops.example</sender>
   <sent>{_cap_time(self.sent)}</sent>
   <status>Exercise</status>
   <msgType>Alert</msgType>

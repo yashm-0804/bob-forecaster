@@ -57,7 +57,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 
 app = FastAPI(
-    title="Bay of Bengal Cyclone Impact Forecaster",
+    title="Project CYCLOPS: Bay of Bengal Cyclone Impact Forecaster",
     description="Asset-level cyclone impact and advisory drafting. Decision "
                 "support only -- IMD is the statutory warning authority.",
     version="0.1.0",

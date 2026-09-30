@@ -40,15 +40,15 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
       - name: build the serving image
-        run: docker build -t bob-forecaster .
+        run: docker build -t project-cyclops .
       # The checks are scripts/smoke_test.sh, which tests/test_ci_smoke.py also
       # runs against a server started with these settings. The codes are
       # throwaway values for this job, not credentials.
       - name: smoke test
         run: |
-          docker run -d -p 8080:8080 --name bob -e BOB_OPERATOR_TOKEN=ci-smoke-operator-code-0123 -e BOB_INGEST_TOKEN=ci-smoke-ingest-code-01234567 bob-forecaster
-          docker run -d -p 8081:8080 --name bob-no-codes bob-forecaster
+          docker run -d -p 8080:8080 --name bob -e BOB_OPERATOR_TOKEN=ci-smoke-operator-code-0123 -e BOB_INGEST_TOKEN=ci-smoke-ingest-code-01234567 project-cyclops
+          docker run -d -p 8081:8080 --name bob-no-codes project-cyclops
           scripts/smoke_test.sh http://localhost:8080 configured
           scripts/smoke_test.sh http://localhost:8081 no-codes
       - name: the image runs as a non-root user
-        run: test "$(docker run --rm --entrypoint id bob-forecaster -u)" != "0"
+        run: test "$(docker run --rm --entrypoint id project-cyclops -u)" != "0"

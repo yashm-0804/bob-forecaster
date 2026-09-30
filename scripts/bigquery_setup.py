@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     table = bq.Table(f"{args.project}.{args.dataset}.{args.table}", bq.authorised_session())
-    what = "Bay of Bengal cyclone forecaster"
+    what = "Project CYCLOPS"
     if table.ensure_dataset(args.location, f"{what}: the approval and dispatch audit trail"):
         print(f"created dataset {args.dataset} in {args.location}")
     if table.get() is None:

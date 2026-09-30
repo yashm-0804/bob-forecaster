@@ -47,7 +47,7 @@ bq add-iam-policy-binding --member="serviceAccount:$SA" \
 gcloud projects add-iam-policy-binding "$PROJECT" \
   --member="serviceAccount:$SA" --role=roles/bigquery.jobUser
 
-gcloud run deploy bob-forecaster \
+gcloud run deploy project-cyclops \
   --source . \
   --region asia-south1 \
   --memory 512Mi \

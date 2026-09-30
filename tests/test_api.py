@@ -371,7 +371,7 @@ def test_telemetry_has_its_own_token(client, monkeypatch):
 
 def test_a_cloud_deployment_without_a_token_refuses_writes(client, advisory_id, monkeypatch):
     """Forgetting the token on a public deployment must fail closed."""
-    monkeypatch.setenv("K_SERVICE", "bob-forecaster")
+    monkeypatch.setenv("K_SERVICE", "project-cyclops")
     r = client.post(f"/api/advisory/{advisory_id}/approve", json={"operator": "K. Ramesh"})
     assert r.status_code == 503
     assert client.post("/api/telemetry", json={}).status_code == 503

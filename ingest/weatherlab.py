@@ -88,7 +88,7 @@ def fetch(init: datetime, model: str = DEFAULT_MODEL, timeout: int = 300) -> pd.
     cache = CACHE_DIR / name
     if not cache.exists():
         url = f"{BASE_URL}/{model}/ensemble/paired/csv/{name}"
-        req = https_request(url, headers={"User-Agent": "bob-forecaster/0.1"})
+        req = https_request(url, headers={"User-Agent": "project-cyclops/0.1"})
         with https_open(req, timeout=timeout) as resp:
             body = resp.read()
         CACHE_DIR.mkdir(parents=True, exist_ok=True)

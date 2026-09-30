@@ -264,7 +264,7 @@ class BigQueryAuditLog:
         self._expiry_checked: datetime | None = None
         self.expires: datetime | None = None
         if table.get() is None:
-            table.create("Bay of Bengal cyclone forecaster: every approval, withdrawal and "
+            table.create("Project CYCLOPS: every approval, withdrawal and "
                          "dispatch attempt, append-only")
         for event in sorted((_event(r) for r in table.rows()), key=lambda e: e["id"]):
             self._remember(event)

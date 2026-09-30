@@ -136,7 +136,7 @@ def _fetch(query: str) -> dict[str, Any]:
             req = https_request(
                 endpoint,
                 data=query.encode(),
-                headers={"User-Agent": "bob-forecaster/0.1 (hackathon research)"},
+                headers={"User-Agent": "project-cyclops/0.1 (hackathon research)"},
             )
             with https_open(req, timeout=240) as resp:
                 return json.loads(resp.read().decode())

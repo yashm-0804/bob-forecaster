@@ -1,7 +1,7 @@
 [project]
-name = "bob-forecaster"
+name = "project-cyclops"
 version = "0.1.0"
-description = "Bay of Bengal cyclone impact and infrastructure vulnerability forecaster"
+description = "Project CYCLOPS: Bay of Bengal cyclone impact and infrastructure vulnerability forecaster"
 requires-python = ">=3.12"
 
 [tool.pytest.ini_options]
