@@ -747,9 +747,7 @@ and tests that need real data use small committed extracts in
   headless Chrome, including the Telugu text.
 
 On a laptop without Node or Chrome those two are skipped; in CI they are
-required. A record of the review rounds that shaped the code is in
-[`docs/QUALITY_REVIEW.md`](docs/QUALITY_REVIEW.md) and
-[`ITERATION_LOG.md`](ITERATION_LOG.md).
+required.
 
 Dependencies are declared in `requirements.txt` (runtime),
 `requirements-dev.txt` (checks) and `requirements-serve.txt` (the deployed
