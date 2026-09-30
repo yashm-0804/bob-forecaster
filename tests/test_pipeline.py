@@ -185,10 +185,15 @@ def test_cap_carries_every_declared_language(run):
 
 
 def test_advisories_name_specific_assets(run):
-    """An instruction that doesn't name assets is not actionable."""
+    """An instruction that doesn't name assets is not actionable.
+
+    Checked by the names themselves, not by the template's "near: X, Y"
+    punctuation, which a Gemini-drafted instruction need not keep.
+    """
+    names = {a["name"] for a in run["assets"] if a.get("name")}
     for adv in run["advisories"]:
         assert len(adv["instruction"]) > 60
-        assert ":" in adv["instruction"]
+        assert any(name in adv["instruction"] for name in names), adv["recipient_key"]
 
 
 def test_ensemble_note_declares_the_surge_caveat(run):
