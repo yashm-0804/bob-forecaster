@@ -205,7 +205,10 @@ Every number in its text is checked against the numbers the code computed
    ```bash
    GEMINI_API_KEY=your-key
    ```
-3. Without a key, or once the free tier's daily limit is spent, advisories
+3. Optionally, add a second key from **another** Google Cloud project as
+   `GEMINI_API_KEY_2`. It is used only when the first key's quota runs out;
+   an overloaded model is the same for every key, so that never switches.
+4. Without a key, or once every key's daily limit is spent, advisories
    keep their template text and say why. The pipeline makes **one request per
    forecast cycle** and caches it, so a full two-storm replay costs eight
    requests.
@@ -726,7 +729,7 @@ BOB_NETWORK_TESTS=1 .venv/bin/python -m pytest -m network       # probes of live
 `check.sh` runs, in order:
 1. lint (Ruff, ESLint);
 2. strict type checks of the Python and the console's JavaScript;
-3. 674 automated tests (607 Python, 67 JavaScript) with coverage floors;
+3. 681 automated tests (614 Python, 67 JavaScript) with coverage floors;
 4. the security checks:
    - Bandit rules;
    - a secret scan of files and history;
@@ -768,6 +771,7 @@ them in the shell, which wins over the file.
 | Variable | Used by | Effect |
 |---|---|---|
 | `GEMINI_API_KEY` | pipeline, agent | Turns on Gemini drafting and translation |
+| `GEMINI_API_KEY_2` | pipeline, agent | A second key, used only when the first runs out of quota. Helps only if it belongs to another Cloud project, since the free tier's quota is per project |
 | `EE_PROJECT` | pipeline | Your Earth Engine Cloud project; required for Earth Engine, no default |
 | `EARTHENGINE_OFF` | pipeline | `1` keeps a run offline even when signed in |
 | `BOB_FIREBASE_PROJECT`, `BOB_FIREBASE_API_KEY`, `BOB_FIREBASE_APP_ID`, `BOB_OPERATORS` | API | Officers sign in with Google; only addresses (or `@domains`) on `BOB_OPERATORS` may act. Replaces the operator code when set |

@@ -27,7 +27,7 @@ def _hermetic(monkeypatch, tmp_path):
 
     monkeypatch.setenv("EARTHENGINE_OFF", "1")
     # No real Gemini calls either: drafting tests pass a fake generator.
-    for name in ("GEMINI_API_KEY", "GOOGLE_API_KEY"):
+    for name in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY_2"):
         monkeypatch.setenv(name, "placeholder")
         monkeypatch.delenv(name)
     # Access control starts in local mode: no tokens, not on Cloud Run.

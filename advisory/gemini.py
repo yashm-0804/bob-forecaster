@@ -49,13 +49,30 @@ MODEL = "gemini-3.7-flash"
 Generate = Callable[[str], str]
 
 
+#: Where keys are read from, in the order they are tried. The second is a
+#: fallback for when the first runs out of quota; it helps only if it belongs
+#: to another Cloud project, since the free tier's quota is per project.
+KEY_VARS = ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY_2")
+
+
+def api_keys() -> list[str]:
+    """Every configured key, in the order to try them, each once."""
+    keys: list[str] = []
+    for name in KEY_VARS:
+        key = os.environ.get(name, "").strip()
+        if key and key not in keys:
+            keys.append(key)
+    return keys
+
+
 def api_key() -> str | None:
-    return os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    keys = api_keys()
+    return keys[0] if keys else None
 
 
 def availability() -> tuple[bool, str]:
     """Whether drafting can run, and if not, why -- in the operator's terms."""
-    if not api_key():
+    if not api_keys():
         return False, "no Gemini API key (set GEMINI_API_KEY)"
     import importlib.util
 
@@ -237,12 +254,16 @@ def _cached_generate(prompt: str) -> str:
 
 
 def _gemini_generate(prompt: str) -> str:
+    return _with_key_fallback(api_keys(), lambda key: _generate_with(key, prompt))
+
+
+def _generate_with(key: str, prompt: str) -> str:
     from google import genai
     from google.genai import types
 
     # The SDK's types are partly unknown to the checker; the reply is checked
     # structurally below, so the client is treated as untyped here.
-    client: Any = genai.Client(api_key=api_key())
+    client: Any = genai.Client(api_key=key)
     config = types.GenerateContentConfig(response_mime_type="application/json",
                                          temperature=0.2)
     response = _with_retries(lambda: client.models.generate_content(
@@ -282,7 +303,41 @@ def _daily_quota(exc: Exception) -> bool:
     return "PerDay" in str(exc)
 
 
+class QuotaSpent(Exception):
+    """Every configured key has used up its daily quota in this process."""
+
+
+#: Keys whose daily quota ran out while this process ran. They are not tried
+#: again, so a replay does not spend a request finding out once per cycle.
+_SPENT: set[str] = set()
+
+
+def _with_key_fallback[T](keys: list[str], call: Callable[[str], T],
+                          spent: set[str] | None = None) -> T:
+    """`call` with the first key whose quota is not spent, moving to the next
+    key only when a quota refuses. Any other failure, such as an overloaded
+    model, is the same for every key, so it is raised rather than spending
+    the next key's quota on it."""
+    spent = _SPENT if spent is None else spent
+    usable = [k for k in keys if k not in spent]
+    if not usable:
+        raise QuotaSpent("every Gemini key has used its daily quota")
+    last: Exception = QuotaSpent("every Gemini key has used its daily quota")
+    for key in usable:
+        try:
+            return call(key)
+        except Exception as exc:  # noqa: BLE001 - classified below
+            if _daily_quota(exc):
+                spent.add(key)
+            elif getattr(exc, "code", None) != 429:
+                raise
+            last = exc          # this key's quota refused; try the next
+    raise last
+
+
 def _failure_note(exc: Exception) -> str:
+    if isinstance(exc, QuotaSpent):
+        return "Gemini daily request quota reached on every key; template kept."
     if _daily_quota(exc):
         return "Gemini daily request quota reached; template kept."
     code = getattr(exc, "code", None)

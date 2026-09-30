@@ -98,6 +98,7 @@ def test_garbage_from_the_model_keeps_the_template():
 def test_without_a_key_nothing_is_claimed(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("GOOGLE_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY_2", raising=False)
     out = gemini.enhance(advisory())
     assert out.drafted_by == "template"
     assert out.languages == ["en-IN"]
@@ -197,6 +198,94 @@ def test_persistent_overload_gives_up_and_keeps_the_template():
     with pytest.raises(_Err):
         _with_retries(call, waits=(1, 2), sleep=waits.append)
     assert waits == [1, 2]
+
+
+# --- a second key, for when the first runs out of quota ---------------------
+
+
+class _DailyQuota(_Err):
+    def __init__(self):
+        super().__init__(429)
+        self.args = ("429 RESOURCE_EXHAUSTED: GenerateRequestsPerDayPerProjectPerModel",)
+
+
+def _keyed(replies):
+    """A call that answers each key from `replies`, recording which were tried."""
+    tried = []
+
+    def call(key):
+        tried.append(key)
+        reply = replies[key]
+        if isinstance(reply, Exception):
+            raise reply
+        return reply
+
+    return call, tried
+
+
+def test_keys_are_read_in_order_each_once(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "first")
+    monkeypatch.setenv("GOOGLE_API_KEY", "first")
+    monkeypatch.setenv("GEMINI_API_KEY_2", " second ")
+    assert gemini.api_keys() == ["first", "second"]
+    assert gemini.api_key() == "first"
+
+
+def test_the_second_key_alone_is_enough(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY_2", "second")
+    assert gemini.availability()[0]
+
+
+def test_a_spent_daily_quota_moves_to_the_next_key():
+    call, tried = _keyed({"first": _DailyQuota(), "second": "ok"})
+    spent: set[str] = set()
+    assert gemini._with_key_fallback(["first", "second"], call, spent) == "ok"
+    assert tried == ["first", "second"]
+    assert spent == {"first"}
+
+
+def test_a_spent_key_is_not_tried_again():
+    call, tried = _keyed({"first": _DailyQuota(), "second": "ok"})
+    assert gemini._with_key_fallback(["first", "second"], call, {"first"}) == "ok"
+    assert tried == ["second"]
+
+
+def test_a_rate_limit_moves_on_without_spending_the_key():
+    call, tried = _keyed({"first": _Err(429), "second": "ok"})
+    spent: set[str] = set()
+    assert gemini._with_key_fallback(["first", "second"], call, spent) == "ok"
+    assert tried == ["first", "second"]
+    assert spent == set(), "a per-minute limit passes; the key is still good today"
+
+
+def test_overload_is_not_retried_on_the_next_key():
+    import pytest
+
+    call, tried = _keyed({"first": _Err(503), "second": "ok"})
+    with pytest.raises(_Err):
+        gemini._with_key_fallback(["first", "second"], call, set())
+    assert tried == ["first"], "an overloaded model is the same for every key"
+
+
+def test_every_key_spent_keeps_the_template_and_says_so():
+    import pytest
+
+    call, tried = _keyed({"first": _DailyQuota(), "second": _DailyQuota()})
+    spent: set[str] = set()
+    with pytest.raises(_DailyQuota) as last:
+        gemini._with_key_fallback(["first", "second"], call, spent)
+    assert gemini._failure_note(last.value) == "Gemini daily request quota reached; template kept."
+    assert spent == {"first", "second"}
+
+    with pytest.raises(gemini.QuotaSpent) as none_left:
+        gemini._with_key_fallback(["first", "second"], call, spent)
+    assert tried == ["first", "second"], "a spent key costs no further request"
+    note = gemini._failure_note(none_left.value)
+    assert note == "Gemini daily request quota reached on every key; template kept."
+
+    out = gemini.enhance(advisory(), generate=lambda prompt: (_ for _ in ()).throw(none_left.value))
+    assert out.drafted_by == "template"
+    assert note in out.draft_notes
 
 
 # --- one request per cycle ---------------------------------------------------

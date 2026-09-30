@@ -25,7 +25,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 os.environ["EARTHENGINE_OFF"] = "1"
-os.environ.pop("GEMINI_API_KEY", None)
+for _name in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY_2"):
+    os.environ.pop(_name, None)
 os.environ.pop("BOB_OPERATOR_TOKEN", None)
 # Time the work, not the write budget: thousands of posts a minute from one
 # client is what the budget exists to refuse.

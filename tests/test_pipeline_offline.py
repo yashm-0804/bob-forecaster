@@ -39,7 +39,8 @@ def _no_network(*args, **kwargs):
 def offline_run(tmp_path_factory):
     mp = pytest.MonkeyPatch()
     mp.setenv("EARTHENGINE_OFF", "1")
-    mp.delenv("GEMINI_API_KEY", raising=False)
+    for name in ("GEMINI_API_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY_2"):
+        mp.delenv(name, raising=False)
     mp.setattr(urllib.request, "urlopen", _no_network)
     mp.setattr(pipeline, "load_assets", lambda bbox: list(ASSETS))
     try:
