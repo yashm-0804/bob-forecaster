@@ -902,5 +902,13 @@ bob-forecaster/
 | Map library | [MapLibre GL JS](https://maplibre.org/) | BSD-3 |
 | Sign-in library | Firebase JS SDK | Apache-2.0 |
 
+## Licence
+
+The code is released under the [MIT License](LICENSE). The libraries served
+from `web/vendor` keep their own licences: MapLibre GL JS under BSD-3-Clause
+([`web/vendor/maplibre-gl/LICENSE.txt`](web/vendor/maplibre-gl/LICENSE.txt))
+and the Firebase JS SDK under Apache-2.0. The data keeps the terms in the
+table above.
+
 Built by **Team SPECODERS** for Build with AI: Code for Communities
 (2nd edition), Track 5.
